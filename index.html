@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>احسب</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <style>
+    body {
+      background-color: #71c5ef;
+      font-family: Arial, sans-serif;
+    }
+    .card {
+      background-color: #ffffffd1;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    .input-field {
+      border: 1px solid #043263;
+      border-radius: 8px;
+      padding: 8px;
+    }
+    .button {
+      background-color: hwb(202 6% 50% / 0.978);
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 10px 20px;
+      text-align: center;
+      text-decoration: none;
+      display: inline-block;
+      font-size: 16px;
+      margin: 4px 2px;
+      cursor: pointer;
+    }
+    .button:hover {
+      background-color: hwb(202 6% 50% / 0.978)
+    }
+  </style>
+</head>
+<body>
+  <div class="container mx-auto p-4">
+    <h1 class="text-3xl font-bold mb-4 text-center">احسب</h1>
+    <div class="card p-6 mb-4">
+      <div class="mb-4">
+        <label for="team1Name" class="block mb-2">Team 1 Name:</label>
+        <input type="text" id="team1Name" class="input-field w-full">
+      </div>
+      <div class="mb-4">
+        <label for="team2Name" class="block mb-2">Team 2 Name:</label>
+        <input type="text" id="team2Name" class="input-field w-full">
+      </div>
+      <button id="startGame" class="button">Start Game</button>
+    </div>
+    <div class="card p-6 mb-4">
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label for="team1Predicted" class="block mb-2">Team 1 Predicted Wins:</label>
+          <input type="number" id="team1Predicted" class="input-field w-full" value="0">
+        </div>
+        <div>
+          <label for="team2Predicted" class="block mb-2">Team 2 Predicted Wins:</label>
+          <input type="number" id="team2Predicted" class="input-field w-full" value="0">
+        </div>
+        <div>
+          <label for="team1Actual" class="block mb-2">Team 1 Actual Wins:</label>
+          <input type="number" id="team1Actual" class="input-field w-full" value="0">
+        </div>
+        <div>
+          <label for="team2Actual" class="block mb-2">Team 2 Actual Wins:</label>
+          <input type="number" id="team2Actual" class="input-field w-full" value="0">
+        </div>
+        <div>
+          <label for="team1Adjustment" class="block mb-2">Team 1 Adjustment:</label>
+          <input type="number" id="team1Adjustment" class="input-field w-full" value="0">
+        </div>
+        <div>
+          <label for="team2Adjustment" class="block mb-2">Team 2 Adjustment:</label>
+          <input type="number" id="team2Adjustment" class="input-field w-full" value="0">
+        </div>
+      </div>
+      <div class="mt-4">
+        <button id="calculateScore" class="button">Calculate Scores</button>
+        <button id="undoScore" class="button">Undo</button>
+        <button id="saveGame" class="button">Save Game</button>
+        <button id="newGame" class="button">New Game</button>
+      </div>
+    </div>
+    <div class="card p-6 mb-4">
+      <div class="mb-4">
+        <label for="team1TotalScore" class="block mb-2">Team 1 Total Score:</label>
+        <input type="number" id="team1TotalScore" class="input-field w-full" value="0" readonly>
+      </div>
+      <div class="mb-4">
+        <label for="team2TotalScore" class="block mb-2">Team 2 Total Score:</label>
+        <input type="number" id="team2TotalScore" class="input-field w-full" value="0" readonly>
+      </div>
+      <div class="mb-4">
+        <label for="gameTimer" class="block mb-2">Game Duration:</label>
+        <input type="text" id="gameTimer" class="input-field w-full" value="00:00:00" readonly>
+      </div>
+      <button id="downloadGame" class="button">Download Game Details</button>
+    </div>
+    <div class="card p-6">
+      <h2 class="text-xl font-bold mb-2">Rounds Played:</h2>
+      <ul id="roundsList"></ul>
+    </div>
+  </div>
+
+  <script>
+    let previousScores = { team1: 0, team2: 0 };
+    let roundHistory = [];
+    let gameStartTime;
+    let gameTimer;
+
+    function calculateScores() {
+      const team1Name = document.getElementById('team1Name').value;
+      const team2Name = document.getElementById('team2Name').value;
+      const team1Predicted = parseInt(document.getElementById('team1Predicted').value) || 0;
+      const team2Predicted = parseInt(document.getElementById('team2Predicted').value) || 0;
+      const team1Actual = parseInt(document.getElementById('team1Actual').value) || 0;
+      const team2Actual = parseInt(document.getElementById('team2Actual').value) || 0;
+      const team1AdjustmentInput = parseInt(document.getElementById('team1Adjustment').value) || 0;
+      const team2AdjustmentInput = parseInt(document.getElementById('team2Adjustment').value) || 0;
+
+      let team1Adjustment = team1Actual < team1Predicted ? -10 * team1Predicted : (10 * team1Predicted) + (team1Actual - team1Predicted);
+      let team2Adjustment = team2Actual < team2Predicted ? -10 * team2Predicted : (10 * team2Predicted) + (team2Actual - team2Predicted);
+
+      team1Adjustment += team1AdjustmentInput;
+      team2Adjustment += team2AdjustmentInput;
+
+      document.getElementById('team1Adjustment').value = '';
+      document.getElementById('team2Adjustment').value = '';
+
+      const team1TotalScore = previousScores.team1 + team1Adjustment;
+      const team2TotalScore = previousScores.team2 + team2Adjustment;
+
+      document.getElementById('team1TotalScore').value = team1TotalScore;
+      document.getElementById('team2TotalScore').value = team2TotalScore;
+
+      previousScores.team1 = team1TotalScore;
+      previousScores.team2 = team2TotalScore;
+
+      roundHistory.push({ team1: team1TotalScore, team2: team2TotalScore });
+
+      updateRoundsPlayed();
+
+      checkForWinner(team1Name, team1TotalScore, team2Name, team2TotalScore);
+    }
+
+    function undoLastScore() {
+      if (roundHistory.length > 0) {
+        roundHistory.pop();
+        const lastRound = roundHistory[roundHistory.length - 1] || { team1: 0, team2: 0 };
+        previousScores.team1 = lastRound.team1;
+        previousScores.team2 = lastRound.team2;
+        document.getElementById('team1TotalScore').value = lastRound.team1;
+        document.getElementById('team2TotalScore').value = lastRound.team2;
+        updateRoundsPlayed();
+      }
+    }
+
+    function saveGame() {
+        const gameState = {
+            team1: {
+                name: document.getElementById('team1Name').value || 'Team 1',
+                totalScore: previousScores.team1
+            },
+            team2: {
+                name: document.getElementById('team2Name').value || 'Team 2',
+                totalScore: previousScores.team2
+            },
+            rounds: roundHistory
+        };
+
+        const gameStateSerialized = JSON.stringify(gameState);
+        const encodedGameState = encodeURIComponent(gameStateSerialized);
+
+        const baseGameUrl = window.location.href.split('?')[0];
+        const saveGameLink = `${baseGameUrl}?state=${encodedGameState}`;
+
+        navigator.clipboard.writeText(saveGameLink).then(() => {
+            alert('Game link copied to clipboard!');
+        }).catch(err => {
+            console.error('Failed to copy: ', err);
+        });
+    }
+
+    function newGame() {
+      previousScores = { team1: 0, team2: 0 };
+      roundHistory = [];
+      document.getElementById('team1TotalScore').value = 0;
+      document.getElementById('team2TotalScore').value = 0;
+      document.getElementById('team1Predicted').value = 0;
+      document.getElementById('team2Predicted').value = 0;
+      document.getElementById('team1Actual').value = 0;
+      document.getElementById('team2Actual').value = 0;
+      document.getElementById('team1Adjustment').value = 0;
+      document.getElementById('team2Adjustment').value = 0;
+      updateRoundsPlayed();
+      stopTimer();
+    }
+
+    function updateRoundsPlayed() {
+      const roundsList = document.getElementById('roundsList');
+      roundsList.innerHTML = '';
+      roundHistory.forEach((round, index) => {
+        const listItem = document.createElement('li');
+        listItem.textContent = `Round ${index + 1}: ${document.getElementById('team1Name').value || 'Team 1'} - ${round.team1}, ${document.getElementById('team2Name').value || 'Team 2'} - ${round.team2}`;
+        roundsList.appendChild(listItem);
+      });
+    }
+
+    function checkForWinner(team1Name, team1Score, team2Name, team2Score) {
+      const winningScore = 540;
+      let winner = null;
+
+      if (team1Score >= winningScore) {
+        winner = team1Name;
+      } else if (team2Score >= winningScore) {
+        winner = team2Name;
+      }
+
+      if (winner) {
+        alert(`${winner} WINS`);
+        stopTimer();
+        newGame();
+      }
+    }
+
+    function startTimer() {
+      gameStartTime = new Date();
+      gameTimer = setInterval(updateTimer, 1000);
+    }
+
+    function stopTimer() {
+      clearInterval(gameTimer);
+    }
+
+    function updateTimer() {
+      const currentTime = new Date();
+      const elapsedTime = currentTime - gameStartTime;
+      const hours = Math.floor(elapsedTime / 3600000).toString().padStart(2, '0');
+      const minutes = Math.floor((elapsedTime % 3600000) / 60000).toString().padStart(2, '0');
+      const seconds = Math.floor((elapsedTime % 60000) / 1000).toString().padStart(2, '0');
+      document.getElementById('gameTimer').value = `${hours}:${minutes}:${seconds}`;
+    }
+
+    function downloadGameDetails() {
+      const team1Name = document.getElementById('team1Name').value || 'Team 1';
+      const team2Name = document.getElementById('team2Name').value || 'Team 2';
+      const gameDuration = document.getElementById('gameTimer').value;
+      const currentDate = new Date().toLocaleDateString();
+
+      let gameDetails = `Game Details\n\n`;
+      gameDetails += `Date: ${currentDate}\n`;
+      gameDetails += `Duration: ${gameDuration}\n\n`;
+      gameDetails += `Teams:\n`;
+      gameDetails += `${team1Name} vs ${team2Name}\n\n`;
+      gameDetails += `Rounds:\n`;
+
+      roundHistory.forEach((round, index) => {
+        gameDetails += `Round ${index + 1}: ${team1Name} - ${round.team1}, ${team2Name} - ${round.team2}\n`;
+      });
+
+      const blob = new Blob([gameDetails], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'game_details.txt';
+      link.click();
+    }
+
+    document.getElementById('startGame').addEventListener('click', startTimer);
+    document.getElementById('calculateScore').addEventListener('click', calculateScores);
+    document.getElementById('undoScore').addEventListener('click', undoLastScore);
+    document.getElementById('saveGame').addEventListener('click', saveGame);
+    document.getElementById('newGame').addEventListener('click', newGame);
+    document.getElementById('downloadGame').addEventListener('click', downloadGameDetails);
+  </script>
+</body>
+</html>
